@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
 
-@Entity
+@Entity//(name="workers")
 @Table(name="workers")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Worker {
@@ -12,10 +12,9 @@ public class Worker {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id", nullable = false)
     private int id;
+    @SuppressWarnings("JpaDataSourceORMInspection")
     @Column(name="ownerId", nullable = false)
     private int ownerId;
-//    @Column(name="birthayDate", nullable = false)
-//    private Date birthayDate;
     @Column(name="salary", nullable = false)
     private Double salary;
 
@@ -26,6 +25,14 @@ public class Worker {
 
     public Worker() {
 
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public int getOwnerId() {
