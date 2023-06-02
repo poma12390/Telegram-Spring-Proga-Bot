@@ -16,9 +16,9 @@ public class Worker {
     @Column(name="ownerId", nullable = false)
     private int ownerId;
     @Column(name="salary", nullable = false)
-    private Double salary;
+    private float salary;
 
-    public Worker(int ownerId, Double salary) {
+    public Worker(int ownerId, Float salary) {
         this.ownerId = ownerId;
         this.salary = salary;
     }
@@ -43,11 +43,11 @@ public class Worker {
         this.ownerId = ownerId;
     }
 
-    public Double getSalary() {
+    public Float getSalary() {
         return salary;
     }
 
-    public void setSalary(Double salary) {
+    public void setSalary(float salary) {
         this.salary = salary;
     }
 }
