@@ -9,18 +9,31 @@ import jakarta.persistence.*;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Worker {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.TABLE)
     @Column(name = "id", nullable = false)
     private int id;
+
+    @SuppressWarnings("JpaDataSourceORMInspection")
+    @Column(name="name", nullable = false)
+    private String name;
     @SuppressWarnings("JpaDataSourceORMInspection")
     @Column(name="ownerId", nullable = false)
     private int ownerId;
     @Column(name="salary", nullable = false)
     private float salary;
 
-    public Worker(int ownerId, Float salary) {
+    public Worker(String name, int ownerId, Float salary) {
+        this.name=name;
         this.ownerId = ownerId;
         this.salary = salary;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Worker() {
