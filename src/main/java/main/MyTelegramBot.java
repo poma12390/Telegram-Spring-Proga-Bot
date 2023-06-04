@@ -66,6 +66,15 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
         String receivedMessage;
         sendMessage=new SendMessage();
         message = update.getMessage();
+        if(update.hasMessage()){//Если новый юзер, создаем нового юзера с базовым состоянием
+            if(!Store.userExist(update.getMessage().getFrom().getId())){
+                Store.newUser(update.getMessage().getFrom().getId());
+            }
+        } else if (update.hasCallbackQuery()) {
+            if(!Store.userExist(update.getCallbackQuery().getFrom().getId())){
+                Store.newUser(update.getCallbackQuery().getFrom().getId());
+            }
+        }
         // Обработка входящего сообщения
         if (update.hasMessage() && update.getMessage().hasText()) {
             switch (message.getText()) {
@@ -74,11 +83,9 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                     startBot(message.getChatId());
                 }
                 case "/add" -> {
-                    replyToMessage("Это test add!");
                     showKeyboard();
                     AddCommand command= (AddCommand) commands.get("/add");
-                    command.execute(dataService);
-                    System.out.println(message.getText());
+                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId());
                 }
                 case "Команда 1" -> {
                     replyToMessage("Это команда 1");
@@ -93,28 +100,29 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                     System.out.println(message.getText());
                 }
             }
+            //Обработка inline клавиатуры
         }else if (update.hasCallbackQuery()) {
             chatId = update.getCallbackQuery().getMessage().getChatId();
             userId = update.getCallbackQuery().getFrom().getId();
             userName = update.getCallbackQuery().getFrom().getFirstName();
             receivedMessage = update.getCallbackQuery().getData();
             deleteInlineKeyboard(update);
-            botAnswerUtils(receivedMessage, chatId, userName);
+            botAnswerUtils(receivedMessage, chatId, userName, userId);
         }
     }
-    private void botAnswerUtils(String receivedMessage, long chatId, String userName) {
+    private void botAnswerUtils(String receivedMessage, long chatId, String userName, long userId) {
         switch (receivedMessage){
             case "/start":
                 Store.queueToSend.add(Pair.of(chatId, userName));
+
                 startBot(chatId);
                 break;
             case "/help":
                 Store.queueToSend.add(Pair.of(chatId, HELP_TEXT));
                 break;
             case "/add":
-                Store.queueToSend.add(Pair.of(chatId, "Это test add!"));
                 AddCommand command= (AddCommand) commands.get("/add");
-                command.execute(dataService);
+                command.execute(dataService, chatId, userId);
             default: break;
         }
     }

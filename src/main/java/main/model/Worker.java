@@ -18,14 +18,16 @@ public class Worker {
     private String name;
     @SuppressWarnings("JpaDataSourceORMInspection")
     @Column(name="ownerId", nullable = false)
-    private int ownerId;
+    private long ownerId;
     @Column(name="salary", nullable = false)
     private float salary;
 
-    public Worker(String name, int ownerId, Float salary) {
-        this.name=name;
+    public Worker(long ownerId) {
         this.ownerId = ownerId;
-        this.salary = salary;
+    }
+
+    public Worker() {
+
     }
 
     public String getName() {
@@ -36,9 +38,6 @@ public class Worker {
         this.name = name;
     }
 
-    public Worker() {
-
-    }
 
     public int getId() {
         return id;
@@ -48,7 +47,7 @@ public class Worker {
         this.id = id;
     }
 
-    public int getOwnerId() {
+    public long getOwnerId() {
         return ownerId;
     }
 
@@ -62,5 +61,14 @@ public class Worker {
 
     public void setSalary(float salary) {
         this.salary = salary;
+    }
+
+    @Override
+    public String toString() {
+        return "Worker{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", salary=" + salary +
+                '}';
     }
 }

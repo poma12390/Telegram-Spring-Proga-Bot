@@ -18,7 +18,8 @@ public class TelegramBotApplication implements CommandLineRunner {
 
     public TelegramBotApplication(MyTelegramBot myTelegramBot) {
         this.myTelegramBot = myTelegramBot;
-        Store.conditionMap=new HashMap<>();
+        Store.setConditionMap(new HashMap<>());
+        Store.setCurWorkerMap(new HashMap<>());
         Store.queueToSend=new LinkedBlockingDeque<>();
         Store.queueToProcess=new LinkedBlockingDeque<>();
     }
