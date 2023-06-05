@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import main.commands.AddCommand;
 import main.commands.BaseCommand;
 import main.commands.HelpCommand;
+import main.commands.InfoCommand;
 import main.frontend.BotCommands;
 import main.frontend.Buttons;
 import main.lib.Store;
@@ -38,7 +39,8 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
 
     private Map<String, BaseCommand> commands=Map.of(
             "/add", new AddCommand(),
-            "/help", new HelpCommand()
+            "/help", new HelpCommand(),
+            "/info", new InfoCommand()
     );
 
     private final DataService dataService;
@@ -77,29 +79,24 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
         }
         // Обработка входящего сообщения
         if (update.hasMessage() && update.getMessage().hasText()) {
+            log.info(message.getChat().getFirstName() + " написал " + update.getMessage().getText());
             switch (message.getText()) {
                 case "/start" -> {
                     replyToMessage("Привет, "+message.getChat().getFirstName());
                     startBot(message.getChatId());
                 }
                 case "/add" -> {
-                    showKeyboard();
                     AddCommand command= (AddCommand) commands.get("/add");
                     command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
                 }
-                case "Команда 1" -> {
-                    replyToMessage("Это команда 1");
-                    System.out.println(Frontend.selectDate(message));
-                }
-                case "Команда 2" -> {
-                    replyToMessage("Это команда 2");
-                    System.out.println(message.getText());
+                case "/info" -> {
+                    InfoCommand command=(InfoCommand) commands.get("/info");
+                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
                 }
                 default -> {
                     switch (Store.getCondition(update.getMessage().getFrom().getId())){
                         case BASE -> {
                             replyToMessage("Это дефолт! Брейк!");
-                            System.out.println(message.getText());
                         }
                         case INPUTNAME -> {
                             AddCommand command= (AddCommand) commands.get("/add");
@@ -123,6 +120,7 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
         }
     }
     private void botAnswerUtils(String receivedMessage, long chatId, String userName, long userId) {
+
         switch (receivedMessage){
             case "/start":
                 Store.queueToSend.add(Pair.of(chatId, userName));
@@ -133,8 +131,12 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                 Store.queueToSend.add(Pair.of(chatId, HELP_TEXT));
                 break;
             case "/add":
-                AddCommand command= (AddCommand) commands.get("/add");
-                command.execute(dataService, chatId, userId, "");
+                AddCommand addCommand= (AddCommand) commands.get("/add");
+                addCommand.execute(dataService, chatId, userId, "");
+                break;
+            case "/info":
+                InfoCommand infoCommand=(InfoCommand) commands.get("/info");
+                infoCommand.execute(dataService, chatId, userId, "");
             default: break;
         }
     }
@@ -193,7 +195,7 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
     }
 
 
-
+    @Deprecated
     public void showKeyboard() {
         SendMessage sendMessage = new SendMessage();
         sendMessage.enableMarkdown(true);

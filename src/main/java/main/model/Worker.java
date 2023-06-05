@@ -3,13 +3,20 @@ package main.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-@Entity//(name="workers")
+
+@Entity
 @Table(name="workers")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Worker {
     @Id
-    @GeneratedValue(strategy = GenerationType.TABLE)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "custom_seq")
+    @SequenceGenerator(
+            name = "custom_seq",
+            allocationSize = 1
+    )
     @Column(name = "id", nullable = false)
     private int id;
 
@@ -22,12 +29,22 @@ public class Worker {
     @Column(name="salary", nullable = false)
     private float salary;
 
+    @SuppressWarnings("JpaDataSourceORMInspection")
+    @Column(name = "InitDate", nullable = false)
+    private final Date initDate;
+
+
     public Worker(long ownerId) {
+        this.initDate=new Date();
         this.ownerId = ownerId;
     }
 
     public Worker() {
+        this.initDate=new Date();
+    }
 
+    public Date getInitDate() {
+        return initDate;
     }
 
     public String getName() {
@@ -65,10 +82,9 @@ public class Worker {
 
     @Override
     public String toString() {
-        return "Worker{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", salary=" + salary +
-                '}';
+        return  "id " + id + ",\n" +
+                "Зовут " + name + ",\n" +
+                "Получает " + salary + ",\n" +
+                "Принят на работу " + new SimpleDateFormat("dd MMMM yyyy hh:mm").format(initDate);
     }
 }

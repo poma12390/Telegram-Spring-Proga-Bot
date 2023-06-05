@@ -21,6 +21,10 @@ public class Store {
         return conditionMap;
     }
 
+    public static void addToSendQueue(Long chatId, String message){
+        queueToSend.add(Pair.of(chatId, message));
+    }
+
     public static void setConditionMap(Map<Long, Condition> conditionMap) {
         Store.conditionMap = conditionMap;
     }
