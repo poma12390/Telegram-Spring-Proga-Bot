@@ -85,7 +85,7 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                 case "/add" -> {
                     showKeyboard();
                     AddCommand command= (AddCommand) commands.get("/add");
-                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId());
+                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
                 }
                 case "Команда 1" -> {
                     replyToMessage("Это команда 1");
@@ -96,8 +96,20 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                     System.out.println(message.getText());
                 }
                 default -> {
-                    replyToMessage("Это дефолт! Брейк!");
-                    System.out.println(message.getText());
+                    switch (Store.getCondition(update.getMessage().getFrom().getId())){
+                        case BASE -> {
+                            replyToMessage("Это дефолт! Брейк!");
+                            System.out.println(message.getText());
+                        }
+                        case INPUTNAME -> {
+                            AddCommand command= (AddCommand) commands.get("/add");
+                            command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), update.getMessage().getText());
+                        }case INPUTSALARY -> {
+                            AddCommand command= (AddCommand) commands.get("/add");
+                            command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), update.getMessage().getText());
+                        }
+                    }
+
                 }
             }
             //Обработка inline клавиатуры
@@ -122,7 +134,7 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                 break;
             case "/add":
                 AddCommand command= (AddCommand) commands.get("/add");
-                command.execute(dataService, chatId, userId);
+                command.execute(dataService, chatId, userId, "");
             default: break;
         }
     }

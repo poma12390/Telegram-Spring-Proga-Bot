@@ -43,10 +43,24 @@ public class Store {
         Store.curWorkerMap = curWorkerMap;
     }
 
+    public static void setCurWorkerById(Long userId, Worker worker){
+        curWorkerMap.put(userId, worker);
+    }
+
+    public static void removeCurWorkerById(Long userId){
+        curWorkerMap.remove(userId);
+    }
+
+    public static Worker getCurWorkerById(Long userId){
+        return curWorkerMap.get(userId);
+    }
 
     public static Condition getCondition(Long userId){
         return conditionMap.get(userId);
     }
 
+    public static void setConditionById(Long userId, Condition condition){
+        conditionMap.put(userId, condition);
+    }
 
 }
