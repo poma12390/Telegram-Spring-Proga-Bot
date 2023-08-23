@@ -1,36 +1,51 @@
 package main.lib;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import main.model.Worker;
 import org.springframework.data.util.Pair;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.BlockingDeque;
 
 
 @Slf4j
 public class Store {
+    @Getter
     private static Map<Long, Condition> conditionMap;
-    public static BlockingDeque<Pair<Long, String>> queueToSend;
+    public static BlockingDeque<Pair<Long, Object>> queueToSend;
     public static BlockingDeque<Update> queueToProcess;
+    @Getter
     private static Map<Long, Worker> curWorkerMap;
 
 
-    public static Map<Long, Condition> getConditionMap() {
-        return conditionMap;
+    public static void addToSendQueue(Long chatId, String message){
+        SendMessage NewsendMessage=new SendMessage();
+        NewsendMessage.setText(message);
+        queueToSend.add(Pair.of(chatId, NewsendMessage));
     }
 
-    public static void addToSendQueue(Long chatId, String message){
+    public static void addToSendQueue(Long chatId, SendPhoto message){
+        queueToSend.add(Pair.of(chatId, message));
+    }
+
+    public static void addToSendQueue(Long chatId, DeleteMessage message){
+        queueToSend.add(Pair.of(chatId, message));
+    }
+
+    public static void addToSendQueue(Long chatId, SendMessage message){
         queueToSend.add(Pair.of(chatId, message));
     }
 
     public static void setConditionMap(Map<Long, Condition> conditionMap) {
         Store.conditionMap = conditionMap;
-    }
-
-    public static Map<Long, Worker> getCurWorkerMap() {
-        return curWorkerMap;
     }
 
     public static boolean userExist(Long userId){

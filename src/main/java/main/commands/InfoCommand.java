@@ -2,6 +2,7 @@ package main.commands;
 
 import main.lib.Store;
 import main.services.DataService;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 
 public class InfoCommand extends BaseCommand{
@@ -11,6 +12,8 @@ public class InfoCommand extends BaseCommand{
         Long allUsers=dataService.workersCount();
         String message=String.format("Всего рабов в коллекции " +"%d" + "\n"+
                 "Из них принадлежат вам " +"%d", allUsers, usersWorkers);
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setText(message);
         Store.addToSendQueue(chatId, message);
     }
 }

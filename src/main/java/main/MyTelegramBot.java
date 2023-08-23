@@ -1,10 +1,7 @@
 package main;
 
 import lombok.extern.slf4j.Slf4j;
-import main.commands.AddCommand;
-import main.commands.BaseCommand;
-import main.commands.HelpCommand;
-import main.commands.InfoCommand;
+import main.commands.*;
 import main.frontend.BotCommands;
 import main.frontend.Buttons;
 import main.lib.Store;
@@ -13,10 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
@@ -24,6 +24,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import main.frontend.Frontend;
 
+import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -38,6 +40,7 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
 
 
     private Map<String, BaseCommand> commands=Map.of(
+            "/start", new StartCommand(),
             "/add", new AddCommand(),
             "/help", new HelpCommand(),
             "/info", new InfoCommand()
@@ -82,8 +85,9 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
             log.info(message.getChat().getFirstName() + " написал " + update.getMessage().getText());
             switch (message.getText()) {
                 case "/start" -> {
+                    StartCommand command= (StartCommand) commands.get("/start");
+                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
                     replyToMessage("Привет, "+message.getChat().getFirstName());
-                    startBot(message.getChatId());
                 }
                 case "/add" -> {
                     AddCommand command= (AddCommand) commands.get("/add");
@@ -92,6 +96,11 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
                 case "/info" -> {
                     InfoCommand command=(InfoCommand) commands.get("/info");
                     command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
+                }
+                case "/help" -> {
+                    HelpCommand command=(HelpCommand) commands.get("/help");
+                    command.execute(dataService, update.getMessage().getChatId(), update.getMessage().getFrom().getId(), "");
+
                 }
                 default -> {
                     switch (Store.getCondition(update.getMessage().getFrom().getId())){
@@ -120,15 +129,15 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
         }
     }
     private void botAnswerUtils(String receivedMessage, long chatId, String userName, long userId) {
-
         switch (receivedMessage){
             case "/start":
-                Store.queueToSend.add(Pair.of(chatId, userName));
-
-                startBot(chatId);
+                Store.addToSendQueue(chatId, userName);
+                StartCommand StartCommand= (StartCommand) commands.get("/start");
+                StartCommand.execute(dataService, chatId, userId, "");
                 break;
             case "/help":
-                Store.queueToSend.add(Pair.of(chatId, HELP_TEXT));
+                HelpCommand helpCommand= (HelpCommand) commands.get("/help");
+                helpCommand.execute(dataService, chatId, userId, "");
                 break;
             case "/add":
                 AddCommand addCommand= (AddCommand) commands.get("/add");
@@ -142,56 +151,17 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
     }
 
 
-
-    private void startBot(long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText("Выберите команду");
-        message.setReplyMarkup(Buttons.inlineMarkup());
-
-        try {
-            execute(message);
-
-        } catch (TelegramApiException ignored){
-
-        }
-    }
-
-    private void updateInlineKeyboard(Update update){
-        EditMessageText editMessageText=new EditMessageText();
-
-        editMessageText.setText("Выберите команду");
-        editMessageText.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-        editMessageText.setChatId(update.getCallbackQuery().getMessage().getChatId());
-        editMessageText.setReplyMarkup(null);
-        try {
-            execute(editMessageText);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     private void deleteInlineKeyboard(Update update){
         DeleteMessage deleteMessage=new DeleteMessage();
-        deleteMessage.setChatId(update.getCallbackQuery().getMessage().getChatId());
         deleteMessage.setMessageId(update.getCallbackQuery().getMessage().getMessageId());
-        try {
-            execute(deleteMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        Store.addToSendQueue(update.getCallbackQuery().getMessage().getChatId(), deleteMessage);
     }
 
 
     public void replyToMessage(String text){
-        sendMessage.setChatId(message.getChatId().toString());
         sendMessage.setReplyToMessageId(message.getMessageId());
         sendMessage.setText(text);
-        try {
-            execute(sendMessage);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        Store.addToSendQueue(message.getChatId(), sendMessage);
     }
 
 
@@ -207,23 +177,44 @@ public class MyTelegramBot extends TelegramLongPollingBot implements BotCommands
 
     }
 
-
+    //Отправитель сообщений
     private void sendMessage(){
         new Thread(() -> {
             ExecutorService executorService = Executors.newFixedThreadPool(5);
             while (true){
                 try {
-                    Pair<Long, String> sendPair= Store.queueToSend.take();
+                    Pair<Long, Object> sendPair= Store.queueToSend.take();
                     executorService.execute(()->{
-                        SendMessage NewsendMessage=new SendMessage();
-                        NewsendMessage.setChatId(sendPair.getFirst());
-                        NewsendMessage.setText(sendPair.getSecond());
-                        try {
-                            execute(NewsendMessage);
-                        } catch (TelegramApiException e) {
-                            throw new RuntimeException(e);
+                        Object o = sendPair.getSecond();
+                        if(o.getClass()==SendMessage.class){
+                            SendMessage NewsendMessage= (SendMessage) sendPair.getSecond();
+                            NewsendMessage.setChatId(sendPair.getFirst());
+                            try {
+                                execute(NewsendMessage);
+                            } catch (TelegramApiException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        else if(o.getClass()==SendPhoto.class){
+                            SendPhoto NewsendPhoto = (SendPhoto) sendPair.getSecond();
+                            NewsendPhoto.setChatId(sendPair.getFirst());
+                            try {
+                                execute(NewsendPhoto);
+                            } catch (TelegramApiException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                        else if(o.getClass()==DeleteMessage.class){
+                            DeleteMessage deleteMessage= (DeleteMessage) sendPair.getSecond();
+                            deleteMessage.setChatId(sendPair.getFirst());
+                            try {
+                                execute(deleteMessage);
+                            } catch (TelegramApiException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     });
+
                 } catch (InterruptedException e) {
                     executorService.shutdown();
                     break;
